@@ -43,6 +43,64 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Saves changes in the application's managed object context before the application terminates.
         self.saveContext()
     }
+    
+    //MARK: - Parsing CSV
+    func parseCSV(contentsOfURL: URL, encoding: String.Encoding) -> [(name: String, detail: String, price: String)]? {
+        //Load the CSV file and parse it
+        let delimiter = ","
+        var items:[(name: String, detail: String, price: String)]?
+        do {
+            let content = try String(contentsOf: contentsOfURL, encoding: encoding)
+            items = []
+            let lines: [String] = content.components(separatedBy: .newlines)
+            
+            for line in lines {
+                var values:[String] = []
+                if line != ""{
+                    //For a line with double quotes
+                    //we use NSScanner to perform rhe parsing
+                    if line.range(of: "\"") != nil {
+                        var textToScan: String = line
+                        var value: NSString?
+                        var textScanner: Scanner = Scanner(string: textToScan)
+                        
+                        while textScanner.string != "" {
+                            if (textScanner.string as NSString).substring(to: 1) == "\"" {
+                                textScanner.scanLocation += 1
+                                textScanner.scanUpTo("\"", into: &value)
+                                textScanner.scanLocation += 1
+                            } else {
+                                textScanner.scanUpTo(delimiter, into: &value)
+                            }
+                            //Store the value into the values array
+                            values.append(value! as String)
+                            
+                            //Retrieve the unscanned remainder of the string
+                            if textScanner.scanLocation < textScanner.string.characters.count {
+                                textToScan = (textScanner.string as NSString).substring(from: textScanner.scanLocation + 1)
+                            } else {
+                                textToScan = ""
+                            }
+                            
+                            textScanner = Scanner(string: textToScan)
+                        }
+                        
+                        //For a line without double quotes, we can simply separate the string
+                        //by using the delimiter(e.g. comma)
+                    } else {
+                        values = line.components(separatedBy: delimiter)
+                    }
+                    //Put the values into the tuple and add it to the items array
+                    let item = (name: values[0], detail: values[1], price: values[2])
+                    items?.append(item)
+                }
+            }
+        } catch {
+            print(error)
+        }
+        
+        return items
+    }
 
     // MARK: - Core Data stack
 
