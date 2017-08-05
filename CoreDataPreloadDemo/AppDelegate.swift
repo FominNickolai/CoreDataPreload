@@ -101,6 +101,49 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         return items
     }
+    
+    //MARK: - PreloadData to database
+    func preloadData() {
+        //Load the data file. For any reason it can't be loaded, we just return
+        guard let contentsOfURL = Bundle.main.url(forResource: "menudata", withExtension: "csv") else { return }
+        //Remove all the menu items before preloading
+        removeData()
+        //Parse the CSV file and import the data
+        if let items = parseCSV(contentsOfURL: contentsOfURL, encoding: String.Encoding.utf8) {
+            let context = persistentContainer.viewContext
+            
+            for item in items {
+                let menuItem = MenuItem(context: context)
+                menuItem.name = item.name
+                menuItem.detail = item.detail
+                menuItem.price = Double(item.price) ?? 0.0
+                
+                do {
+                    try context.save()
+                } catch {
+                    print(error)
+                }
+                
+            }
+        }
+    }
+    
+    func removeData() {
+        //Remove the existing items
+        let fetchRequest = NSFetchRequest<MenuItem>(entityName: "MenuItem")
+        let context = persistentContainer.viewContext
+        do {
+            let menuItems = try context.fetch(fetchRequest)
+            for menuItem in menuItems {
+                context.delete(menuItem)
+            }
+            
+            saveContext()
+            
+        } catch {
+            print(error)
+        }
+    }
 
     // MARK: - Core Data stack
 
