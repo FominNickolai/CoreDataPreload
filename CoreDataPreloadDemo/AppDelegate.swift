@@ -17,12 +17,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        /*
         let defaults = UserDefaults.standard
         let isPreloaded = defaults.bool(forKey: "isPreloaded")
         if !isPreloaded {
             preloadData()
             defaults.set(true, forKey: "isPreloaded")
-        }
+        }*/
+        preloadDataFromExternalSource()
         return true
     }
 
@@ -108,7 +110,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return items
     }
     
-    //MARK: - PreloadData to database
+    //MARK: - PreloadData from local to database
     func preloadData() {
         //Load the data file. For any reason it can't be loaded, we just return
         guard let contentsOfURL = Bundle.main.url(forResource: "menudata", withExtension: "csv") else { return }
@@ -118,6 +120,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if let items = parseCSV(contentsOfURL: contentsOfURL, encoding: String.Encoding.utf8) {
             let context = persistentContainer.viewContext
             
+            for item in items {
+                let menuItem = MenuItem(context: context)
+                menuItem.name = item.name
+                menuItem.detail = item.detail
+                menuItem.price = Double(item.price) ?? 0.0
+                
+                do {
+                    try context.save()
+                } catch {
+                    print(error)
+                }
+                
+            }
+        }
+    }
+    
+    func preloadDataFromExternalSource() {
+        //Load the data file from a remote URL
+        guard let remoteURL = URL(string: "https://drive.google.com/uc?export=download&id=0ByZhaKOAvtNGelJOMEdhRFo2c28") else { return }
+        //Remove all the menu items before preloading
+        removeData()
+        //Parse the CSV file and import the data
+        if let items = parseCSV(contentsOfURL: remoteURL, encoding: String.Encoding.utf8) {
+            let context = persistentContainer.viewContext
             for item in items {
                 let menuItem = MenuItem(context: context)
                 menuItem.name = item.name
